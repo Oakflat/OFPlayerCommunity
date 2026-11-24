@@ -21,9 +21,12 @@
                     <SolidColorBrush x:Key="OFPlayerSheetSurfaceBrush" Color="#202020"/>
                     <AcrylicBrush x:Key="OFPlayerPlaybackSurfaceBrush" TintColor="#202020" TintOpacity="0.38" TintLuminosityOpacity="0.54" FallbackColor="#202020"/>
                     <SolidColorBrush x:Key="OFPlayerChromeSurfaceBrush" Color="#E6202020"/>
-                    <!-- The account ring and allowance meters: bright fixed colours on a hairline,
-                         dark ticks and a meter track that follow the theme. Warnings in text use
-                         the deeper shades, which stay readable on the menu. -->
+                    <LinearGradientBrush x:Key="OFPlayerBadgeBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#333B82F6" Offset="0"/>
+                        <GradientStop Color="#2260A5FA" Offset="1"/>
+                    </LinearGradientBrush>
+                    <SolidColorBrush x:Key="OFPlayerBadgeBorderBrush" Color="#4D60A5FA"/>
+                    <SolidColorBrush x:Key="OFPlayerBadgeForegroundBrush" Color="#93C5FD"/>
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Light">
                     <SolidColorBrush x:Key="OFPlayerSurfaceBrush" Color="#66FFFFFF"/>
@@ -31,6 +34,12 @@
                     <SolidColorBrush x:Key="OFPlayerSheetSurfaceBrush" Color="#FAFAFA"/>
                     <AcrylicBrush x:Key="OFPlayerPlaybackSurfaceBrush" TintColor="#FAFAFA" TintOpacity="0.38" TintLuminosityOpacity="0.54" FallbackColor="#FAFAFA"/>
                     <SolidColorBrush x:Key="OFPlayerChromeSurfaceBrush" Color="#EDFAFAFA"/>
+                    <LinearGradientBrush x:Key="OFPlayerBadgeBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#242563EB" Offset="0"/>
+                        <GradientStop Color="#143B82F6" Offset="1"/>
+                    </LinearGradientBrush>
+                    <SolidColorBrush x:Key="OFPlayerBadgeBorderBrush" Color="#382563EB"/>
+                    <SolidColorBrush x:Key="OFPlayerBadgeForegroundBrush" Color="#1D4ED8"/>
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="HighContrast">
                     <SolidColorBrush x:Key="OFPlayerSurfaceBrush" Color="{ThemeResource SystemColorWindowColor}"/>
@@ -38,6 +47,9 @@
                     <SolidColorBrush x:Key="OFPlayerSheetSurfaceBrush" Color="{ThemeResource SystemColorWindowColor}"/>
                     <SolidColorBrush x:Key="OFPlayerPlaybackSurfaceBrush" Color="{ThemeResource SystemColorWindowColor}"/>
                     <SolidColorBrush x:Key="OFPlayerChromeSurfaceBrush" Color="{ThemeResource SystemColorWindowColor}"/>
+                    <SolidColorBrush x:Key="OFPlayerBadgeBackgroundBrush" Color="{ThemeResource SystemColorWindowColor}"/>
+                    <SolidColorBrush x:Key="OFPlayerBadgeBorderBrush" Color="{ThemeResource SystemColorWindowTextColor}"/>
+                    <SolidColorBrush x:Key="OFPlayerBadgeForegroundBrush" Color="{ThemeResource SystemColorWindowTextColor}"/>
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
             <FontFamily x:Key="ContentControlThemeFontFamily">Microsoft YaHei UI</FontFamily>

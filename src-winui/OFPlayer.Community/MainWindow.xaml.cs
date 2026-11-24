@@ -31,7 +31,14 @@ public sealed partial class MainWindow : Window
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(TitleBar);
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets/AppIcon.ico"));
-        SystemBackdrop = new Microsoft.UI.Xaml.Media.MicaBackdrop();
+        try
+        {
+            SystemBackdrop = new ThinDesktopAcrylicBackdrop();
+        }
+        catch
+        {
+            SystemBackdrop = new Microsoft.UI.Xaml.Media.MicaBackdrop();
+        }
         ModeSwitch.PlaceChosen += place =>
         {
             if (place == SidebarPlace.Video)
@@ -49,7 +56,7 @@ public sealed partial class MainWindow : Window
         };
         Sources.NewLibraryRequested += async (_, _) =>
         {
-            if (await AskName("新建曲库")is { } n)
+            if (await AskName("新建曲库") is { } n)
                 await model.CreateLibraryAsync(n);
         };
         Sources.AddRemoteRequested += async (_, _) => await AddRemote();
@@ -74,12 +81,12 @@ public sealed partial class MainWindow : Window
             var d = new ContentDialog
             {
                 XamlRoot = Root.XamlRoot,
-                Title = "歌曲详情",
+                Title = Localization.Get("player.details"),
                 Content = new TrackInspectorView
                 {
                     Embedded = true
                 },
-                CloseButtonText = "关闭"
+                CloseButtonText = Localization.Get("common.close")
             };
             await d.ShowAsync();
         };
@@ -90,21 +97,35 @@ public sealed partial class MainWindow : Window
             ApplyNavigationStrings();
             Localization.LanguageChanged += ApplyNavigationStrings;
             UpdateTitleBarRegions();
+            UpdatePlaybackBarInset();
+            EnsureImmersiveOverlay();
             await model.ConnectAsync();
             BuildNavigation();
             ApplyTheme();
+            ApplyContentBackdrop();
             InitializeVideo();
             InitializeTray();
             media = new SystemMediaSession(Hwnd, DispatcherQueue, model);
+            _ = PreloadWebSurfacesAsync();
         };
         AppWindow.Closing += Closing;
+        AppWindow.Changed += OnAppWindowChanged;
         bool sized = false;
         Activated += (_, e) =>
         {
             if (sized || e.WindowActivationState == WindowActivationState.Deactivated)
                 return;
             sized = true;
-            DispatcherQueue.TryEnqueue(() => AppWindow.Resize(new(1280, 850)));
+            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+            {
+                if (closing)
+                    return;
+                var scale = Root.XamlRoot?.RasterizationScale is > 0 and var s ? s : 1.0;
+                var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary).WorkArea;
+                var width = Math.Min((int)Math.Round(1280 * scale), (int)(area.Width * 0.92));
+                var height = Math.Min((int)Math.Round(850 * scale), (int)(area.Height * 0.92));
+                AppWindow.Resize(new(width, height));
+            });
         };
         Key(Windows.System.VirtualKey.Space, Windows.System.VirtualKeyModifiers.None, ToggleCurrentPlayback);
         Key(Windows.System.VirtualKey.Left, Windows.System.VirtualKeyModifiers.Control, async () => { if (videoMode) await StepVideo(-1); else await model.PlayPreviousAsync(); });
@@ -125,7 +146,7 @@ public sealed partial class MainWindow : Window
         };
         a.Invoked += async (_, e) =>
         {
-            if (FocusManager.GetFocusedElement(Root.XamlRoot)is TextBox or AutoSuggestBox || Microsoft.UI.Xaml.Media.VisualTreeHelper.GetOpenPopupsForXamlRoot(Root.XamlRoot).Count > 0)
+            if (FocusManager.GetFocusedElement(Root.XamlRoot) is TextBox or AutoSuggestBox || Microsoft.UI.Xaml.Media.VisualTreeHelper.GetOpenPopupsForXamlRoot(Root.XamlRoot).Count > 0)
                 return;
             e.Handled = true;
             await action();
@@ -133,12 +154,17 @@ public sealed partial class MainWindow : Window
         Root.KeyboardAccelerators.Add(a);
     }
 
-    void ApplyTheme() => Root.RequestedTheme = model.ThemePreference switch
+    void ApplyTheme()
     {
-        "dark" => ElementTheme.Dark,
-        "light" => ElementTheme.Light,
-        _ => ElementTheme.Default
-    };
+        Root.RequestedTheme = model.ThemePreference switch
+        {
+            "dark" => ElementTheme.Dark,
+            "light" => ElementTheme.Light,
+            _ => ElementTheme.Default
+        };
+        ApplyContentBackdrop();
+    }
+
     void ModelChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(MainViewModel.ActiveCollectionRef) or nameof(MainViewModel.IsRemoteMode)
@@ -147,11 +173,19 @@ public sealed partial class MainWindow : Window
         if (AffectsContentBackdrop(e.PropertyName))
             ApplyContentBackdrop();
         trayMenu?.Update(CurrentTrayState());
-        if(e.PropertyName==nameof(MainViewModel.PendingMissingTracksReview)){
-            var review=model.PendingMissingTracksReview;MissingNotice.Message=review is null?"":$"发现 {review.MissingTotal} 首无法找到文件的歌曲。";MissingNotice.IsOpen=review is not null;
+        if (e.PropertyName == nameof(MainViewModel.PendingMissingTracksReview))
+        {
+            var review = model.PendingMissingTracksReview;
+            MissingNotice.Message = review is null ? "" : $"发现 {review.MissingTotal} 首无法找到文件的歌曲。";
+            MissingNotice.IsOpen = review is not null;
         }
         if (e.PropertyName == nameof(MainViewModel.ThemePreference))
             ApplyTheme();
+        if (e.PropertyName is nameof(MainViewModel.ImmersiveTaskbarHidden) or nameof(MainViewModel.ImmersiveTaskbarModePreference))
+        {
+            immersive?.SetTaskbarHidden(model.ImmersiveTaskbarHidden);
+            ApplyImmersivePresenter();
+        }
         if (e.PropertyName == nameof(MainViewModel.StatusMessage))
         {
             Notice.Message = model.StatusMessage;
@@ -170,6 +204,7 @@ public sealed partial class MainWindow : Window
         SettingsPage.Visibility = VideoPage.Visibility = Visibility.Collapsed;
         PlaybackBar.Visibility = Visibility.Visible;
         Sources.Visibility = Visibility.Visible;
+        UpdatePlaybackBarInset();
         if (changed && LibraryPage.IsLoaded) Motion.Show(LibraryPage, offsetY: 16, durationMs: Motion.SlowMs, restart: true);
         BuildNavigation();
     }
@@ -177,6 +212,7 @@ public sealed partial class MainWindow : Window
     void MusicClicked(object sender, RoutedEventArgs e) => ShowLibrary();
     async void VideoClicked(object sender, RoutedEventArgs e)
     {
+        var changed = VideoPage.Visibility != Visibility.Visible;
         await model.SuspendForVideoAsync();
         videoMode = true;
         ModeSwitch.SelectedPlace = SidebarPlace.Video;
@@ -184,7 +220,11 @@ public sealed partial class MainWindow : Window
         VideoPage.Visibility = Visibility.Visible;
         PlaybackBar.Visibility = Visibility.Collapsed;
         Sources.Visibility = Visibility.Collapsed;
+        UpdatePlaybackBarInset();
+        if (changed && VideoPage.IsLoaded)
+            Motion.Show(VideoPage, offsetY: 16, durationMs: Motion.SlowMs, restart: true);
         BuildNavigation();
+        RefreshVideoUI();
     }
 
     private MenuFlyout LibraryMenu(string id)
@@ -206,14 +246,46 @@ public sealed partial class MainWindow : Window
         return menu;
     }
 
+    void PlaybackBarSizeChanged(object sender, SizeChangedEventArgs e) => UpdatePlaybackBarInset();
+
+    void UpdatePlaybackBarInset()
+    {
+        if (LibraryPage is null || PlaybackBar is null)
+            return;
+        LibraryPage.SetPlaybackBarInset(PlaybackBar.Visibility == Visibility.Visible ? PlaybackBar.ActualHeight : 0);
+    }
+
     void ShellSizeChanged(object sender, SizeChangedEventArgs e)
     {
         if (ShellClip is not null) ShellClip.Rect = new(0, 0, e.NewSize.Width, e.NewSize.Height);
         if (SidebarToggle is not null) UpdateTitleBarRegions();
-        LibraryPage?.SetPlaybackBarInset(0);
+        UpdatePlaybackBarInset();
     }
 
-    private async void ReviewMissingClicked(object sender,RoutedEventArgs args){if(model.PendingMissingTracksReview is not {} review)return;var list=new ListView{ItemsSource=review.Tracks.Select(t=>t.Title+"\n"+t.SourcePath).ToArray(),MaxHeight=360};var choice=await new ContentDialog{XamlRoot=Root.XamlRoot,Title="失效歌曲",Content=list,PrimaryButtonText="从曲库移除",CloseButtonText="保留记录",DefaultButton=ContentDialogButton.Close}.ShowAsync();if(choice==ContentDialogResult.Primary)await model.ConfirmMissingTracksCleanupAsync(review);else model.KeepMissingTracks(review);}
+    private async void ReviewMissingClicked(object sender, RoutedEventArgs args)
+    {
+        if (model.PendingMissingTracksReview is not { } review)
+            return;
+        var list = new ListView
+        {
+            ItemsSource = review.Tracks.Select(t => t.Title + "\n" + t.SourcePath).ToArray(),
+            MaxHeight = 360
+        };
+        var choice = await new ContentDialog
+        {
+            XamlRoot = Root.XamlRoot,
+            Title = "失效歌曲",
+            Content = list,
+            PrimaryButtonText = "从曲库移除",
+            CloseButtonText = "保留记录",
+            DefaultButton = ContentDialogButton.Close
+        }.ShowAsync();
+        if (choice == ContentDialogResult.Primary)
+            await model.ConfirmMissingTracksCleanupAsync(review);
+        else
+            model.KeepMissingTracks(review);
+    }
+
     internal async Task<string?> AskName(string title, string value = "")
     {
         var box = new TextBox
@@ -243,56 +315,23 @@ public sealed partial class MainWindow : Window
         CloseButtonText = "取消",
         DefaultButton = ContentDialogButton.Close
     }.ShowAsync() == ContentDialogResult.Primary;
+
     async Task AddRemote()
     {
-        var name = new TextBox
-        {
-            Header = "名称"
-        };
+        var name = new TextBox { Header = "名称" };
         var provider = new ComboBox
         {
             Header = "类型",
-            ItemsSource = new[]
-            {
-                "WebDAV",
-                "Navidrome / Subsonic"
-            },
+            ItemsSource = new[] { "WebDAV", "Navidrome / Subsonic" },
             SelectedIndex = 0,
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
-        var endpoint = new TextBox
-        {
-            Header = "服务器地址",
-            PlaceholderText = "https://"
-        };
-        var path = new TextBox
-        {
-            Header = "目录（可选）"
-        };
-        var user = new TextBox
-        {
-            Header = "用户名"
-        };
-        var password = new PasswordBox
-        {
-            Header = "密码"
-        };
-        var panel = new StackPanel
-        {
-            Spacing = 12,
-            Width = 420
-        };
-        foreach (var c in new Control[]
-        {
-            name,
-            provider,
-            endpoint,
-            path,
-            user,
-            password
-        }
-
-        )
+        var endpoint = new TextBox { Header = "服务器地址", PlaceholderText = "https://" };
+        var path = new TextBox { Header = "目录（可选）" };
+        var user = new TextBox { Header = "用户名" };
+        var password = new PasswordBox { Header = "密码" };
+        var panel = new StackPanel { Spacing = 12, Width = 420 };
+        foreach (var c in new Control[] { name, provider, endpoint, path, user, password })
             panel.Children.Add(c);
         var d = new ContentDialog
         {

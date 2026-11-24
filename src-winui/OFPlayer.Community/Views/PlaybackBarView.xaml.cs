@@ -128,6 +128,9 @@ public sealed partial class PlaybackBarView : UserControl
             case nameof(MainViewModel.CanPlay):
             case nameof(MainViewModel.CanSkip):
             case nameof(MainViewModel.PlaybackLabel):
+            case nameof(MainViewModel.RepeatMode):
+            case nameof(MainViewModel.RepeatModeLabel):
+            case nameof(MainViewModel.ShuffleEnabled):
             case nameof(MainViewModel.PlayModeLabel):
             case nameof(MainViewModel.OutputDeviceLabel):
             case nameof(MainViewModel.IsConnected):
@@ -202,13 +205,17 @@ public sealed partial class PlaybackBarView : UserControl
             WindowTheme.Brush(LyricsIcon, "Foreground", "AccentTextFillColorPrimaryBrush");
         else
             LyricsIcon.ClearValue(StyleProperty);
+        ShuffleButton.IsEnabled = viewModel.IsConnected;
+        if (viewModel.ShuffleEnabled)
+            WindowTheme.Brush(ShuffleIcon, "Foreground", "AccentTextFillColorPrimaryBrush");
+        else
+            ShuffleIcon.ClearValue(StyleProperty);
+        SetLabel(ShuffleButton, text("player.mode.shuffle"));
         PreviousButton.IsEnabled = viewModel.CanSkip;
         NextButton.IsEnabled = viewModel.CanSkip;
         PlayModeButton.IsEnabled = viewModel.IsConnected;
-        // E8EE RepeatAll, E8ED RepeatOne, F5E7 RepeatOff, E8B1 Shuffle.
-        // Show the current mode, including a restored preference, rather than
-        // leaving the button on the RepeatAll icon after every click.
-        var modeGlyph = viewModel.ShuffleEnabled ? '\uE8B1' : viewModel.RepeatMode switch
+        // E8EE RepeatAll, E8ED RepeatOne, F5E7 RepeatOff.
+        var modeGlyph = viewModel.RepeatMode switch
         {
             PlaybackOrder.RepeatOne => '\uE8ED',
             PlaybackOrder.RepeatNone => '\uF5E7',
@@ -216,8 +223,8 @@ public sealed partial class PlaybackBarView : UserControl
         };
         if (PlayModeIcon.Glyph != modeGlyph.ToString())
             PlayModeIcon.Glyph = modeGlyph.ToString();
-        ToolTipService.SetToolTip(PlayModeButton, viewModel.PlayModeLabel);
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(PlayModeButton, Localization.Format("player.mode.named", ("mode", viewModel.PlayModeLabel)));
+        ToolTipService.SetToolTip(PlayModeButton, viewModel.RepeatModeLabel);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(PlayModeButton, Localization.Format("player.mode.named", ("mode", viewModel.RepeatModeLabel)));
         DeviceButton.IsEnabled = viewModel.IsConnected;
         DeviceLabel.Text = viewModel.OutputDeviceLabel;
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(DeviceButton, Localization.Format("player.output.named", ("device", viewModel.OutputDeviceLabel)));
@@ -353,6 +360,18 @@ public sealed partial class PlaybackBarView : UserControl
         {
             await viewModel.PlayPreviousAsync();
         }
+    }
+
+    private void ToggleShuffle(object sender, RoutedEventArgs args)
+    {
+        using var __perf = OFPlayer.WinUI.Core.Diagnostics.PerformanceTrace.BeginOperation("PlaybackBarView.xaml.ToggleShuffle");
+        viewModel?.ToggleShuffle();
+    }
+
+    private void CycleRepeatMode(object sender, RoutedEventArgs args)
+    {
+        using var __perf = OFPlayer.WinUI.Core.Diagnostics.PerformanceTrace.BeginOperation("PlaybackBarView.xaml.CycleRepeatMode");
+        viewModel?.CycleRepeatMode();
     }
 
     private void CyclePlayMode(object sender, RoutedEventArgs args)

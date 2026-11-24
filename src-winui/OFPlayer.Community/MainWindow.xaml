@@ -7,11 +7,13 @@
   <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
   <Grid.Clip><RectangleGeometry x:Name="ShellClip"/></Grid.Clip>
   <Grid x:Name="TitleBar" Grid.ColumnSpan="2" Padding="4,0,144,0">
-   <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+   <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
     <Button x:Name="SidebarToggle" Width="40" Height="40" Padding="0" Style="{StaticResource QuietButtonStyle}" Click="ToggleSidebar" Loaded="TitleBarEntryChanged" SizeChanged="TitleBarEntryChanged"><FontIcon Glyph="&#xE700;" FontSize="16"/></Button>
-    <Image Source="ms-appx:///Assets/AppLogo.png" Width="24" Height="24"/>
-    <TextBlock Text="OFPlayer" FontWeight="SemiBold" VerticalAlignment="Center"/>
-    <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}" CornerRadius="4" Padding="7,3"><TextBlock Text="Community" FontSize="11"/></Border>
+    <Image Source="ms-appx:///Assets/AppLogo.png" Width="22" Height="22" VerticalAlignment="Center"/>
+    <TextBlock Text="OFPlayer" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+    <Border Background="{ThemeResource OFPlayerBadgeBackgroundBrush}" BorderBrush="{ThemeResource OFPlayerBadgeBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="7,2" VerticalAlignment="Center">
+     <TextBlock Text="Community" FontSize="11" FontWeight="SemiBold" Foreground="{ThemeResource OFPlayerBadgeForegroundBrush}"/>
+    </Border>
    </StackPanel>
   </Grid>
   <Grid x:Name="SidebarSpace" Grid.Row="1" Width="224"/>
@@ -32,23 +34,167 @@
     </NavigationView>
    </Grid>
   </Grid>
-  <Border Grid.Row="1" Grid.Column="1" CornerRadius="12,0,0,0" Background="{ThemeResource OFPlayerContentSurfaceBrush}">
-   <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-    <Grid x:Name="ContentBackdropLayer" Grid.Row="1" Grid.RowSpan="2" Visibility="Collapsed" IsHitTestVisible="False"><Border x:Name="ContentBackdropPrevious"/><Border x:Name="ContentBackdropCurrent"/></Grid>
-    <StackPanel><InfoBar x:Name="Notice" IsOpen="False" IsClosable="True" Margin="12,8,12,0"/>
+  <Border Grid.Row="1" Grid.Column="1" CornerRadius="12,0,0,0">
+   <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+    <Grid x:Name="ContentBackdropLayer" Grid.RowSpan="2" CornerRadius="12,0,0,0" Visibility="Collapsed" IsHitTestVisible="False"><Border x:Name="ContentBackdropPrevious" CornerRadius="12,0,0,0"/><Border x:Name="ContentBackdropCurrent" CornerRadius="12,0,0,0"/></Grid>
+    <StackPanel Canvas.ZIndex="2"><InfoBar x:Name="Notice" IsOpen="False" IsClosable="True" Margin="12,8,12,0"/>
       <InfoBar x:Name="MissingNotice" IsOpen="False" IsClosable="True" Severity="Warning" Margin="12,8,12,0"><InfoBar.ActionButton><Button Content="查看失效歌曲" Click="ReviewMissingClicked"/></InfoBar.ActionButton></InfoBar></StackPanel>
     <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition x:Name="InspectorColumn" Width="0"/></Grid.ColumnDefinitions>
      <views:LibraryPageView x:Name="LibraryPage"/>
-     <ScrollViewer x:Name="SettingsPage" Visibility="Collapsed" Padding="28,20"><StackPanel x:Name="SettingsContent" Spacing="16" MaxWidth="920" HorizontalAlignment="Stretch"/></ScrollViewer>
-     <Grid x:Name="VideoPage" Visibility="Collapsed" Padding="24,18" RowSpacing="14"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="140"/></Grid.RowDefinitions>
-      <Grid><TextBlock Text="视频" FontSize="28" FontWeight="SemiBold"/><StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8"><Button Content="添加文件" Click="AddVideoClicked"/><Button Content="全屏" Click="VideoFullScreenClicked"/></StackPanel></Grid>
-      <MediaPlayerElement x:Name="VideoSurface" Grid.Row="1" AreTransportControlsEnabled="True" Stretch="Uniform"/>
-      <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8"><Button Content="添加字幕" Click="AddSubtitleClicked"/><ComboBox x:Name="SubtitleTracks" Width="180" DisplayMemberPath="Name" SelectionChanged="SubtitleChanged"/><ComboBox x:Name="VideoRate" Width="100" SelectedIndex="2" SelectionChanged="VideoRateChanged"><x:Double>0.5</x:Double><x:Double>0.75</x:Double><x:Double>1</x:Double><x:Double>1.25</x:Double><x:Double>1.5</x:Double><x:Double>2</x:Double></ComboBox></StackPanel>
-      <ListView x:Name="VideoFiles" Grid.Row="3" DisplayMemberPath="Name" DoubleTapped="VideoDoubleTapped"/>
+     <Grid x:Name="SettingsPage" Visibility="Collapsed" CornerRadius="12,0,0,0" Background="{ThemeResource OFPlayerChromeSurfaceBrush}">
+      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+      <StackPanel x:Name="SettingsHeader" Spacing="14" Padding="24,16,24,12" HorizontalAlignment="Stretch"/>
+      <ScrollViewer x:Name="SettingsScroller" Grid.Row="1" HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled" HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto">
+       <StackPanel x:Name="SettingsContent" Spacing="12" Padding="24,4,24,116" HorizontalAlignment="Stretch"/>
+      </ScrollViewer>
      </Grid>
-     <Border x:Name="InspectorHost" Grid.Column="1" Visibility="Collapsed"><views:TrackInspectorView x:Name="Inspector"/></Border>
+     <Grid x:Name="VideoPage" Visibility="Collapsed" Padding="24,16,24,0" RowSpacing="12" CornerRadius="12,0,0,0" Background="{ThemeResource OFPlayerChromeSurfaceBrush}">
+      <Grid.RowDefinitions>
+       <RowDefinition Height="Auto"/>
+       <RowDefinition Height="Auto"/>
+       <RowDefinition Height="*" MinHeight="220"/>
+       <RowDefinition Height="Auto"/>
+       <RowDefinition Height="180"/>
+       <RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+      <Grid Grid.Row="0" ColumnSpacing="10">
+       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+       <StackPanel Spacing="4">
+        <TextBlock x:Name="VideoPageTitle" Text="视频" FontSize="28" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+         <TextBlock x:Name="VideoCountLabel" Text="0 个本地视频" FontSize="12" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+         <ProgressRing x:Name="VideoLoadingRing" IsActive="False" Width="14" Height="14" VerticalAlignment="Center"/>
+        </StackPanel>
+       </StackPanel>
+       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <Button x:Name="AddVideoFilesButton" Click="AddVideoClicked" MinHeight="32">
+         <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xE8E5;" FontSize="12"/><TextBlock Text="添加文件"/></StackPanel>
+        </Button>
+        <Button x:Name="AddVideoFolderButton" Click="AddVideoFolderClicked" MinHeight="32">
+         <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xE8B7;" FontSize="12"/><TextBlock Text="添加文件夹"/></StackPanel>
+        </Button>
+        <Button x:Name="PlayAllVideosButton" Click="PlayAllVideosClicked" Style="{StaticResource AccentButtonStyle}" MinHeight="32" Padding="12,5,14,6">
+         <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xE768;" FontSize="12"/><TextBlock Text="播放全部"/></StackPanel>
+        </Button>
+       </StackPanel>
+      </Grid>
+      <InfoBar x:Name="VideoNotice" Grid.Row="1" IsOpen="False" IsClosable="True"/>
+      <Border x:Name="VideoStageHost" Grid.Row="2" CornerRadius="12" Background="#FF0D0E12" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+       <Grid x:Name="VideoStageGrid" DoubleTapped="VideoStageDoubleTapped" Tapped="VideoStageTapped" Background="Transparent">
+        <MediaPlayerElement x:Name="VideoSurface" AreTransportControlsEnabled="False" Stretch="Uniform"/>
+        <StackPanel x:Name="VideoEmptyOverlay" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" Padding="24">
+         <FontIcon Glyph="&#xE173;" FontSize="36" HorizontalAlignment="Center" Opacity="0.45" Foreground="#CCFFFFFF"/>
+         <TextBlock Text="选择或添加本地视频开始播放" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" Foreground="#E6FFFFFF"/>
+         <TextBlock Text="支持 MP4、MKV、MOV、AVI、WMV、WebM、M4V、TS · 自动记忆播放位置" FontSize="12" HorizontalAlignment="Center" Foreground="#99FFFFFF"/>
+        </StackPanel>
+        <Border x:Name="VideoStageBadge" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12" Padding="10,4" CornerRadius="6" Background="#9914161C" Visibility="Collapsed" IsHitTestVisible="False">
+         <TextBlock x:Name="VideoStageBadgeText" FontSize="12" Foreground="#F0FFFFFF"/>
+        </Border>
+       </Grid>
+      </Border>
+      <Grid Grid.Row="3" ColumnSpacing="8">
+       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+       <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <Button x:Name="AddSubtitleButton" Click="AddSubtitleClicked" MinHeight="32">
+         <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xED1E;" FontSize="13"/><TextBlock Text="添加字幕"/></StackPanel>
+        </Button>
+        <ComboBox x:Name="SubtitleTracks" MinWidth="156" MaxWidth="240" DisplayMemberPath="Name" SelectionChanged="SubtitleChanged" VerticalAlignment="Center"/>
+        <Button x:Name="SubtitleSettingsButton" MinHeight="32" ToolTipService.ToolTip="字幕时间偏移、外观与台词检索" Click="SubtitleSettingsClicked">
+         <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xE713;" FontSize="13"/><TextBlock Text="字幕设置"/></StackPanel>
+        </Button>
+        <ComboBox x:Name="AudioTracks" MinWidth="136" MaxWidth="200" DisplayMemberPath="Name" SelectionChanged="AudioTrackChanged" VerticalAlignment="Center" Visibility="Collapsed"/>
+        <Button x:Name="AudioSettingsButton" MinHeight="32" ToolTipService.ToolTip="音频输出设备与声道平衡" Click="AudioSettingsClicked">
+         <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xE995;" FontSize="13"/><TextBlock Text="音轨与声道"/></StackPanel>
+        </Button>
+       </StackPanel>
+       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <ComboBox x:Name="VideoRate" MinWidth="92" DisplayMemberPath="Label" SelectionChanged="VideoRateChanged" VerticalAlignment="Center"/>
+        <Button x:Name="VideoToolsButton" MinHeight="32" ToolTipService.ToolTip="A–B 循环、逐帧定位与画面旋转" Click="VideoToolsClicked">
+         <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xE7AD;" FontSize="13"/><TextBlock Text="画面与循环"/></StackPanel>
+        </Button>
+        <DropDownButton x:Name="VideoCaptureButton" MinHeight="32" ToolTipService.ToolTip="视频截图">
+         <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xE722;" FontSize="13"/><TextBlock Text="截图"/></StackPanel>
+         <DropDownButton.Flyout>
+          <MenuFlyout Placement="BottomEdgeAlignedRight">
+           <MenuFlyoutItem Text="复制当前画面到剪贴板" Click="CopyVideoFrameClicked"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8C8;"/></MenuFlyoutItem.Icon></MenuFlyoutItem>
+           <MenuFlyoutItem Text="保存截图为 PNG…" Click="SaveVideoFrameClicked"><MenuFlyoutItem.Icon><FontIcon Glyph="&#xE74E;"/></MenuFlyoutItem.Icon></MenuFlyoutItem>
+          </MenuFlyout>
+         </DropDownButton.Flyout>
+        </DropDownButton>
+        <Button x:Name="VideoFullScreenButton" Click="VideoFullScreenClicked" MinHeight="32">
+         <StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Glyph="&#xE740;" FontSize="13"/><TextBlock Text="全屏"/></StackPanel>
+        </Button>
+       </StackPanel>
+      </Grid>
+      <Border Grid.Row="4" CornerRadius="12" Background="{ThemeResource OFPlayerSheetSurfaceBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+       <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <Grid Padding="14,8,10,4" ColumnSpacing="8">
+         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+         <TextBlock x:Name="VideoListHeaderLabel" Text="本地视频列表" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+         <Button x:Name="ClearVideosButton" Grid.Column="1" Content="清空列表" Click="ClearVideosClicked" Style="{StaticResource QuietButtonStyle}" FontSize="12" Padding="8,4" MinHeight="26"/>
+        </Grid>
+        <ListView x:Name="VideoFiles" Grid.Row="1" SelectionMode="Single" DoubleTapped="VideoDoubleTapped" Padding="4,0,4,6"/>
+       </Grid>
+      </Border>
+      <Grid x:Name="VideoPlaybackBar" Grid.Row="5" Margin="-24,0,-24,0" Padding="24,8,24,6" ColumnSpacing="12" RowSpacing="4" Background="{ThemeResource OFPlayerPlaybackSurfaceBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
+       <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" MinWidth="140"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="*"/>
+       </Grid.ColumnDefinitions>
+       <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+       </Grid.RowDefinitions>
+       <Grid Grid.Row="0" Grid.Column="0" ColumnSpacing="12" VerticalAlignment="Center">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+        <Border Width="44" Height="44" CornerRadius="8" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+         <FontIcon Glyph="&#xE173;" FontSize="18" Opacity="0.55" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Border>
+        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+         <TextBlock x:Name="VideoNowPlayingTitle" Text="选一部本地视频开始播放" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+         <TextBlock x:Name="VideoNowPlayingSub" Text="本地视频" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+        </StackPanel>
+       </Grid>
+       <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+        <Button x:Name="VideoPrevButton" Style="{StaticResource QuietButtonStyle}" Click="VideoPrevClicked" ToolTipService.ToolTip="上一部">
+         <FontIcon Glyph="&#xE892;" FontSize="14"/>
+        </Button>
+        <Button x:Name="VideoPlayPauseButton" Click="VideoPlayPauseClicked" Width="44" Height="44" Padding="0" CornerRadius="22" Style="{StaticResource AccentButtonStyle}" ToolTipService.ToolTip="播放 / 暂停">
+         <SymbolIcon x:Name="VideoPlayPauseIcon" Symbol="Play"/>
+        </Button>
+        <Button x:Name="VideoNextButton" Style="{StaticResource QuietButtonStyle}" Click="VideoNextClicked" ToolTipService.ToolTip="下一部">
+         <FontIcon Glyph="&#xE893;" FontSize="14"/>
+        </Button>
+        <Button x:Name="VideoLoopButton" Style="{StaticResource QuietButtonStyle}" Click="VideoLoopClicked" ToolTipService.ToolTip="单部循环">
+         <FontIcon x:Name="VideoLoopIcon" Glyph="&#xE8EE;" FontSize="16"/>
+        </Button>
+       </StackPanel>
+       <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right" VerticalAlignment="Center">
+        <Button x:Name="VideoMuteButton" Style="{StaticResource QuietButtonStyle}" Click="VideoMuteClicked" ToolTipService.ToolTip="静音 / 取消静音">
+         <FontIcon x:Name="VideoVolumeIcon" Glyph="&#xE767;" FontSize="16"/>
+        </Button>
+        <Slider x:Name="VideoVolumeSlider" Minimum="0" Maximum="100" Value="80" Width="104" VerticalAlignment="Center" ValueChanged="VideoVolumeChanged"/>
+        <Button x:Name="VideoBarFullScreenButton" Style="{StaticResource QuietButtonStyle}" Click="VideoFullScreenClicked" ToolTipService.ToolTip="全屏">
+         <FontIcon Glyph="&#xE740;" FontSize="16"/>
+        </Button>
+       </StackPanel>
+       <Grid Grid.Row="1" Grid.ColumnSpan="3" ColumnSpacing="10">
+        <Grid.ColumnDefinitions>
+         <ColumnDefinition Width="Auto"/>
+         <ColumnDefinition Width="*"/>
+         <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <TextBlock x:Name="VideoPositionLeftText" Text="0:00" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
+        <Slider x:Name="VideoSeekSlider" Grid.Column="1" Minimum="0" Maximum="1" StepFrequency="0.1" VerticalAlignment="Center" ValueChanged="VideoSeekChanged"/>
+        <TextBlock x:Name="VideoDurationRightText" Grid.Column="2" Text="0:00" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center"/>
+       </Grid>
+      </Grid>
+     </Grid>
+     <Border x:Name="InspectorHost" Grid.Column="1" Visibility="Collapsed" Background="{ThemeResource OFPlayerContentSurfaceBrush}"><views:TrackInspectorView x:Name="Inspector"/></Border>
     </Grid>
-    <views:PlaybackBarView x:Name="PlaybackBar" Grid.Row="2"/>
+    <views:PlaybackBarView x:Name="PlaybackBar" Grid.Row="1" VerticalAlignment="Bottom" SizeChanged="PlaybackBarSizeChanged"/>
    </Grid>
   </Border>
   <Grid x:Name="ImmersiveHost" Grid.RowSpan="2" Grid.ColumnSpan="2" Visibility="Collapsed" Background="{ThemeResource OFPlayerContentSurfaceBrush}"/>

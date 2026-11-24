@@ -1,4 +1,4 @@
-using System.Collections.Specialized;
+﻿using System.Collections.Specialized;
 using System.ComponentModel;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -1216,7 +1216,7 @@ public sealed partial class LibraryPageView : UserControl
         if (single?.IsFileMissing == true)
             flyout.Items.Add(Item(text("missing.file.manage"), "\uE838", () => ShowMissingFileAsync(single)));
         var favorite = !rows.All(row => row.Favorite);
-        flyout.Items.Add(Item(text(favorite ? "track.favorite" : "track.unfavorite"), favorite ? "\uE734" : "\uE735", () => SetFavoriteAsync(rows, favorite)));
+        flyout.Items.Add(Item(text(favorite ? "track.favorite" : "track.unfavorite"), favorite ? "\uEB51" : "\uEB52", () => SetFavoriteAsync(rows, favorite)));
         var add = new MenuFlyoutSubItem
         {
             Text = text("track.addToPlaylist"),

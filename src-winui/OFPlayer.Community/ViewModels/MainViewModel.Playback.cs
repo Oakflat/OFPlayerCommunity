@@ -35,7 +35,18 @@ public sealed partial class MainViewModel
     private bool isDetailsOpen = true;
     public string RepeatMode => repeatMode;
     public bool ShuffleEnabled => shuffleEnabled;
-    public TrackDetail? CurrentTrackDetail { get => currentTrackDetail?.Id == playback.ActiveTrackId ? currentTrackDetail : null; private set => SetProperty(ref currentTrackDetail, value); }
+    public TrackDetail? CurrentTrackDetail
+    {
+        get => currentTrackDetail?.Id == playback.ActiveTrackId ? currentTrackDetail : null;
+        private set
+        {
+            SetProperty(ref currentTrackDetail, value);
+            RaisePropertyChanged(nameof(PlaybackTitle));
+            RaisePropertyChanged(nameof(PlaybackArtist));
+            RaisePropertyChanged(nameof(PlaybackArtwork));
+            RaisePropertyChanged(nameof(PlaybackLabel));
+        }
+    }
     public IReadOnlyList<PlaybackOutputDevice> OutputDevices => outputDevices.Devices;
     public string? ActiveOutputDeviceId => outputDevices.ActiveDeviceId;
     public bool IsDetailsOpen { get => isDetailsOpen; set => SetProperty(ref isDetailsOpen, value); }
@@ -52,6 +63,12 @@ public sealed partial class MainViewModel
     /// <summary>`ask` | `minimize` | `exit` — what closing the window does. Ask is the default.</summary>
     public string CloseBehaviorPreference => closeBehaviorPreference;
     public string StorageSummaryText { get => storageSummaryText; private set => SetProperty(ref storageSummaryText, value); }
+    public string RepeatModeLabel => Localization.Get(RepeatMode switch
+    {
+        PlaybackOrder.RepeatOne => "player.mode.repeatOne",
+        PlaybackOrder.RepeatNone => "player.mode.inOrder",
+        _ => "player.mode.repeatAll",
+    });
     public string PlayModeLabel => Localization.Get(ShuffleEnabled ? "player.mode.shuffle" : RepeatMode switch
     {
         PlaybackOrder.RepeatOne => "player.mode.repeatOne",
@@ -69,9 +86,35 @@ public sealed partial class MainViewModel
         (repeatMode, shuffleEnabled) = PlaybackModeCycle.Next(repeatMode, shuffleEnabled);
         shuffledOrder = shuffleEnabled ? PlaybackOrder.CreateShuffled(currentQueueTrackIds, playback.ActiveTrackId) : new List<string>();
         RaisePropertyChanged(nameof(RepeatMode));
+        RaisePropertyChanged(nameof(RepeatModeLabel));
         RaisePropertyChanged(nameof(ShuffleEnabled));
         RaisePropertyChanged(nameof(PlayModeLabel));
         _ = PersistPreferencesAsync(new { repeatMode, shuffleEnabled });
+    }
+
+    public void ToggleShuffle()
+    {
+        using var __perf = OFPlayer.WinUI.Core.Diagnostics.PerformanceTrace.Begin("MainViewModel.Playback.ToggleShuffle");
+        shuffleEnabled = !shuffleEnabled;
+        shuffledOrder = shuffleEnabled ? PlaybackOrder.CreateShuffled(currentQueueTrackIds, playback.ActiveTrackId) : new List<string>();
+        RaisePropertyChanged(nameof(ShuffleEnabled));
+        RaisePropertyChanged(nameof(PlayModeLabel));
+        _ = PersistPreferencesAsync(new { shuffleEnabled });
+    }
+
+    public void CycleRepeatMode()
+    {
+        using var __perf = OFPlayer.WinUI.Core.Diagnostics.PerformanceTrace.Begin("MainViewModel.Playback.CycleRepeatMode");
+        repeatMode = repeatMode switch
+        {
+            PlaybackOrder.RepeatAll => PlaybackOrder.RepeatOne,
+            PlaybackOrder.RepeatOne => PlaybackOrder.RepeatNone,
+            _ => PlaybackOrder.RepeatAll,
+        };
+        RaisePropertyChanged(nameof(RepeatMode));
+        RaisePropertyChanged(nameof(RepeatModeLabel));
+        RaisePropertyChanged(nameof(PlayModeLabel));
+        _ = PersistPreferencesAsync(new { repeatMode });
     }
 
     /// <summary>Queue order honoring shuffle (rebuilds when the queue changed).</summary>
@@ -141,8 +184,17 @@ public sealed partial class MainViewModel
         await PlaySkipAsync(-1, PlaybackOrder.ReasonUser);
     }
 
+    private static string FormatPlaybackSubtitle(string? artist, string? album)
+    {
+        var a = artist?.Trim() ?? string.Empty;
+        var b = album?.Trim() ?? string.Empty;
+        if (a.Length > 0 && b.Length > 0)
+            return $"{a} · {b}";
+        return a.Length > 0 ? a : b;
+    }
+
     public string PlaybackTitle => CurrentTrackDetail?.Title ?? FindLoadedTrack(playback.ActiveTrackId)?.Title ?? (playback.ActiveTrackId == "external" && externalPlaybackLabel.Length > 0 ? externalPlaybackLabel : Localization.Get(IsConnected ? "player.idle" : "player.notReady"));
-    public string PlaybackArtist => CurrentTrackDetail?.Artist ?? FindLoadedTrack(playback.ActiveTrackId)?.Artist ?? string.Empty;
+    public string PlaybackArtist => CurrentTrackDetail is { } detail ? FormatPlaybackSubtitle(detail.Artist, detail.Album) : FindLoadedTrack(playback.ActiveTrackId) is { } row ? FormatPlaybackSubtitle(row.Artist, row.Album) : string.Empty;
     public string? PlaybackArtwork => CurrentTrackDetail?.Artwork;
 
     private string BuildPlaybackLabel()
@@ -267,30 +319,33 @@ public sealed partial class MainViewModel
             var result = await client.SendAsync("desktop_preferences_load", null, CancellationToken.None);
             preferencesLoaded = true;
             var preferences = result.ValueKind == JsonValueKind.Object && result.TryGetProperty("preferences", out var element) && element.ValueKind == JsonValueKind.Object ? element : default;
+            repeatMode = NormalizeRepeatMode(ReadString(preferences, "repeatMode"));
+            shuffleEnabled = ReadBool(preferences, "shuffleEnabled", false);
+            rememberVolume = ReadBool(preferences, "rememberVolume", true);
+            rememberedVolume = Math.Clamp(ReadDouble(preferences, "volume", DefaultVolume), 0.0, 1.0);
+            telemetryEnabled = ReadBool(preferences, "telemetryEnabled", true);
+            themePreference = NormalizeTheme(ReadString(preferences, "theme"));
+            // R4-2: the old model accepts legacy aliases for these two; read them the
+            // same way so a profile written by the old client restores identically.
+            languagePreference = NormalizeLanguage(ReadString(preferences, "language") ?? ReadString(preferences, "localePreference") ?? ReadString(preferences, "locale"));
+            immersiveTaskbarModePreference = NormalizeImmersiveTaskbarMode(ReadString(preferences, "immersiveTaskbarMode") ?? ReadString(preferences, "immersiveFullscreenMode"));
+            closeBehaviorPreference = NormalizeCloseBehavior(ReadString(preferences, "closeBehavior"));
+            smartPlaylistsPreference = NormalizeSmartPlaylists(ReadString(preferences, "smartPlaylists"));
+            // M1b: storage-watch preferences (old scanDirectories / autoScanOnLaunch).
+            autoScanOnLaunch = ReadBool(preferences, "autoScanOnLaunch", false);
+            libraryScanDirectories = ReadStringList(preferences, "scanDirectories");
+            lyricsScanDirectories = ReadStringList(preferences, "lyricsScanDirectories");
             post(() =>
             {
-                repeatMode = NormalizeRepeatMode(ReadString(preferences, "repeatMode"));
-                shuffleEnabled = ReadBool(preferences, "shuffleEnabled", false);
-                rememberVolume = ReadBool(preferences, "rememberVolume", true);
-                rememberedVolume = Math.Clamp(ReadDouble(preferences, "volume", DefaultVolume), 0.0, 1.0);
-                telemetryEnabled = ReadBool(preferences, "telemetryEnabled", true);
-                themePreference = NormalizeTheme(ReadString(preferences, "theme"));
-                // R4-2: the old model accepts legacy aliases for these two; read them the
-                // same way so a profile written by the old client restores identically.
-                languagePreference = NormalizeLanguage(ReadString(preferences, "language") ?? ReadString(preferences, "localePreference") ?? ReadString(preferences, "locale"));
-                immersiveTaskbarModePreference = NormalizeImmersiveTaskbarMode(ReadString(preferences, "immersiveTaskbarMode") ?? ReadString(preferences, "immersiveFullscreenMode"));
-                closeBehaviorPreference = NormalizeCloseBehavior(ReadString(preferences, "closeBehavior"));
-                smartPlaylistsPreference = NormalizeSmartPlaylists(ReadString(preferences, "smartPlaylists"));
-                // M1b: storage-watch preferences (old scanDirectories / autoScanOnLaunch).
-                autoScanOnLaunch = ReadBool(preferences, "autoScanOnLaunch", false);
+                Localization.ApplyPreference(languagePreference);
                 NewTracksFirst = ReadBool(preferences, "newTracksFirst", false);
                 ArtistSortOption = ReadString(preferences, "artistSortOption") == "track-count" ? "track-count" : "name";
                 RaisePropertyChanged(nameof(NewTracksFirst));
                 RaisePropertyChanged(nameof(ArtistSortOption));
-                libraryScanDirectories = ReadStringList(preferences, "scanDirectories");
                 LoadCapsuleAppearance(preferences);
                 LoadContentBackdrop(preferences);
                 RaisePropertyChanged(nameof(RepeatMode));
+                RaisePropertyChanged(nameof(RepeatModeLabel));
                 RaisePropertyChanged(nameof(ShuffleEnabled));
                 RaisePropertyChanged(nameof(PlayModeLabel));
                 RaisePropertyChanged(nameof(PreferredVolume));
@@ -304,6 +359,7 @@ public sealed partial class MainViewModel
                 RaisePropertyChanged(nameof(SmartPlaylistsPreference));
                 RaisePropertyChanged(nameof(AutoScanOnLaunch));
                 RaisePropertyChanged(nameof(LibraryScanDirectories));
+                RaisePropertyChanged(nameof(LyricsScanDirectories));
                 // D3: restore the persisted sort option (queried with defaults already).
                 collectionSorting.Load(preferences);
                 var savedSort = collectionSorting.Resolve(ActiveCollectionRef);
@@ -396,7 +452,11 @@ public sealed partial class MainViewModel
     {
         using var __perf = OFPlayer.WinUI.Core.Diagnostics.PerformanceTrace.Begin("MainViewModel.Playback.SetLanguageAsync");
         languagePreference = NormalizeLanguage(language);
-        post(() => RaisePropertyChanged(nameof(LanguagePreference)));
+        post(() =>
+        {
+            Localization.ApplyPreference(languagePreference);
+            RaisePropertyChanged(nameof(LanguagePreference));
+        });
         await PersistPreferencesAsync(new { language = languagePreference });
     }
 

@@ -70,12 +70,34 @@ public sealed partial class MainWindow
         }
     }
 
+    private bool IsWindowMinimized() =>
+        AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized };
+
+    private void UpdateBackgroundPresentationState()
+    {
+        if (closing)
+            return;
+        var background = inTray || !AppWindow.IsVisible || IsWindowMinimized();
+        PlaybackBar?.SetPresentationActive(!background);
+        immersive?.SetBackgroundMode(background);
+        CapsuleWindow.SetBackgroundMode(background);
+    }
+
+    private void OnAppWindowChanged(AppWindow sender, AppWindowChangedEventArgs args)
+    {
+        if (args.DidPresenterChange || args.DidVisibilityChange || args.DidSizeChange)
+        {
+            DispatcherQueue.TryEnqueue(UpdateBackgroundPresentationState);
+        }
+    }
+
     private void EnterTray()
     {
         if (trayIcon is null)
         {
             if (AppWindow.Presenter is OverlappedPresenter p)
                 p.Minimize();
+            UpdateBackgroundPresentationState();
             return;
         }
 
@@ -83,9 +105,7 @@ public sealed partial class MainWindow
         inTray = true;
         CloseImmersive();
         AppWindow.Hide();
-        PlaybackBar.SetPresentationActive(false);
-        immersive?.SetBackgroundMode(true);
-        CapsuleWindow.SetBackgroundMode(true);
+        UpdateBackgroundPresentationState();
     }
 
     internal void RestoreFromTray()
@@ -95,9 +115,7 @@ public sealed partial class MainWindow
         if (AppWindow.Presenter is OverlappedPresenter p)
             p.Restore();
         Activate();
-        PlaybackBar.SetPresentationActive(true);
-        immersive?.SetBackgroundMode(false);
-        CapsuleWindow.SetBackgroundMode(false);
+        UpdateBackgroundPresentationState();
         ApplyContentBackdrop();
     }
 
@@ -116,22 +134,23 @@ public sealed partial class MainWindow
             {
                 var remember = new CheckBox
                 {
-                    Content = "记住我的选择"
+                    Content = Localization.Get("close.remember")
                 };
                 var panel = new StackPanel
                 {
-                    Spacing = 16
+                    Spacing = 12
                 };
-                panel.Children.Add(new TextBlock { Text = "最小化后会继续播放，可从托盘返回。", TextWrapping = TextWrapping.Wrap });
+                panel.Children.Add(new TextBlock { Text = Localization.Get("close.body"), TextWrapping = TextWrapping.Wrap });
                 panel.Children.Add(remember);
+                panel.Children.Add(OFPlayer_WinUI.WindowTheme.Brush(new TextBlock { Text = Localization.Get("close.remember.hint"), FontSize = 12, TextWrapping = TextWrapping.Wrap }, "Foreground", "TextFillColorSecondaryBrush"));
                 var result = await new ContentDialog
                 {
                     XamlRoot = Root.XamlRoot,
-                    Title = "关闭 OFPlayer？",
+                    Title = Localization.Format("close.title", ("app", "OFPlayer")),
                     Content = panel,
-                    PrimaryButtonText = "最小化",
-                    SecondaryButtonText = "退出",
-                    CloseButtonText = "取消",
+                    PrimaryButtonText = Localization.Get("close.minimize"),
+                    SecondaryButtonText = Localization.Get("close.quit"),
+                    CloseButtonText = Localization.Get("common.cancel"),
                     DefaultButton = ContentDialogButton.Primary
                 }.ShowAsync();
                 if (result == ContentDialogResult.None)
@@ -160,6 +179,7 @@ public sealed partial class MainWindow
         if (closing)
             return;
         closing = true;
+        AppWindow.Changed -= OnAppWindowChanged;
         sidebarWidth?.Stop();
         smartHoverTimer?.Stop();
         Localization.LanguageChanged -= ApplyNavigationStrings;
@@ -169,6 +189,8 @@ public sealed partial class MainWindow
         {
             trayMenu?.Close();
             trayIcon?.Dispose();
+            if (immersive is not null)
+                await immersive.ReleaseAsync();
             CapsuleWindow.CloseIfOpen();
             media?.Dispose();
             await SaveVideos();

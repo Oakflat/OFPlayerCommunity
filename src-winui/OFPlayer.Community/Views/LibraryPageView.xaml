@@ -147,7 +147,7 @@
                 <AppBarButton x:Name="SelectionQueueAppendButton" Click="AppendSelectionToQueue"><AppBarButton.Icon><FontIcon Glyph="&#xE710;"/></AppBarButton.Icon></AppBarButton>
                 <AppBarButton x:Name="SelectionQueueRemoveButton" Click="RemoveSelectionFromQueue" Visibility="Collapsed"><AppBarButton.Icon><FontIcon Glyph="&#xE738;"/></AppBarButton.Icon></AppBarButton>
                 <AppBarButton x:Name="SelectionAddButton" Click="AddSelectionToPlaylist"><AppBarButton.Icon><FontIcon Glyph="&#xE710;"/></AppBarButton.Icon></AppBarButton>
-                <AppBarButton x:Name="SelectionFavoriteButton" Click="ToggleFavoriteSelection"><AppBarButton.Icon><FontIcon Glyph="&#xE734;"/></AppBarButton.Icon></AppBarButton>
+                <AppBarButton x:Name="SelectionFavoriteButton" Click="ToggleFavoriteSelection"><AppBarButton.Icon><FontIcon Glyph="&#xEB51;"/></AppBarButton.Icon></AppBarButton>
                 <AppBarButton x:Name="RemoveFromPlaylistBarButton" Click="RemoveSelectionFromPlaylist" Visibility="Collapsed"><AppBarButton.Icon><FontIcon Glyph="&#xE738;"/></AppBarButton.Icon></AppBarButton>
                 <AppBarButton x:Name="SelectionDeleteButton" Click="DeleteSelection"><AppBarButton.Icon><FontIcon Glyph="&#xE74D;"/></AppBarButton.Icon></AppBarButton>
                 <AppBarSeparator/>
@@ -195,7 +195,7 @@
                 <TextBlock x:Name="ColumnAlbum" Grid.Column="3" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                 <TextBlock x:Name="ColumnDuration" Grid.Column="4" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                 <TextBlock x:Name="ColumnFormat" Grid.Column="5" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                <FontIcon Grid.Column="6" Glyph="&#xE734;" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                <FontIcon Grid.Column="6" Glyph="&#xEB51;" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
             </Grid>
             <GridView x:Name="GroupsList" Grid.Row="1" Padding="0,12,12,16" IsItemClickEnabled="True" SelectionMode="None" Visibility="Collapsed" ItemClick="OpenGroup">
                 <GridView.ItemContainerTransitions><TransitionCollection/></GridView.ItemContainerTransitions>
@@ -250,12 +250,12 @@
                             <TextBlock Grid.Column="3" Text="{Binding Album}" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
                             <TextBlock Grid.Column="4" Text="{Binding DurationText}" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                             <TextBlock Grid.Column="5" Text="{Binding Format}" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
-                            <!-- A starred row keeps its star; the controls themselves appear on hover. -->
+                            <!-- A favorited row keeps its heart; the controls themselves appear on hover. -->
                             <Grid Grid.Column="6">
-                                <FontIcon Glyph="&#xE735;" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"
+                                <FontIcon Glyph="&#xEB52;" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"
                                           Visibility="{Binding FavoriteVisibility}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
                                 <Button Style="{StaticResource RowActionButtonStyle}" Opacity="0" Click="RowFavoriteClicked" Loaded="RowFavoriteLoaded">
-                                    <FontIcon Glyph="{Binding FavoriteGlyph, FallbackValue=&#xE734;}" FontSize="13" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                                    <FontIcon Glyph="{Binding FavoriteGlyph, FallbackValue=&#xEB51;}" FontSize="13" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
                                 </Button>
                             </Grid>
                             <Button Grid.Column="7" Style="{StaticResource RowActionButtonStyle}" Opacity="0" Click="RowMoreClicked" Loaded="RowMoreLoaded">

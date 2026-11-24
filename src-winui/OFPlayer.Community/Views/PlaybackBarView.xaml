@@ -54,7 +54,9 @@
         </Grid>
 
         <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-            <Button x:Name="PlayModeButton" Style="{StaticResource QuietButtonStyle}" Click="CyclePlayMode"><FontIcon x:Name="PlayModeIcon" Glyph="&#xE8EE;" FontSize="16"/></Button>
+            <Button x:Name="ShuffleButton" Style="{StaticResource QuietButtonStyle}" Click="ToggleShuffle">
+                <FontIcon x:Name="ShuffleIcon" Glyph="&#xE8B1;" FontSize="16"/>
+            </Button>
             <Button x:Name="PreviousButton" Style="{StaticResource QuietButtonStyle}" Click="PlayPrevious">
                 <FontIcon Glyph="&#xE892;" FontSize="14"/>
             </Button>
@@ -63,6 +65,9 @@
             </Button>
             <Button x:Name="NextButton" Style="{StaticResource QuietButtonStyle}" Click="PlayNext">
                 <FontIcon Glyph="&#xE893;" FontSize="14"/>
+            </Button>
+            <Button x:Name="PlayModeButton" Style="{StaticResource QuietButtonStyle}" Click="CycleRepeatMode">
+                <FontIcon x:Name="PlayModeIcon" Glyph="&#xE8EE;" FontSize="16"/>
             </Button>
         </StackPanel>
 

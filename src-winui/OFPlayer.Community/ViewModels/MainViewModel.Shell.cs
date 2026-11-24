@@ -239,7 +239,8 @@ public sealed partial class MainViewModel
 
         try
         {
-            var preferences = await client.SendAsync("desktop_preferences_load", null, CancellationToken.None);
+            var result = await client.SendAsync("desktop_preferences_load", null, CancellationToken.None);
+            var preferences = result.ValueKind == JsonValueKind.Object && result.TryGetProperty("preferences", out var inner) && inner.ValueKind == JsonValueKind.Object ? inner : result;
             var directories = new List<string>();
             if (preferences.ValueKind == JsonValueKind.Object && preferences.TryGetProperty("lyricsScanDirectories", out var array) && array.ValueKind == JsonValueKind.Array)
             {

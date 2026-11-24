@@ -108,6 +108,7 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IAsyncDispos
                 await client.DisposeAsync();
             lifetime?.Dispose();
             lifetime = new();
+            ResetAudioEngineStatus();
             hostService = new NativeHostService();
             client = await hostService.ConnectAsync(lifetime.Token);
             playbackStateOrder.Reset();
@@ -119,9 +120,12 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IAsyncDispos
             await LoadStructureAsync();
             await RestoreSessionAsync();
             await LoadPreferencesAsync();
+            await RefreshAudioEngineAsync();
             await RefreshOutputDevicesAsync();
             ApplyPreferredVolumeToEngine();
+            _ = LoadRemoteConnectionsAsync();
             _ = LoadListeningStatsAsync();
+            _ = RefreshDiagnosticsStatusAsync();
             StartDailyActivity(hostService.DataRoot);
             SyncStorageWatchAsync();
             ScheduleStartupScan();
@@ -375,7 +379,13 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IAsyncDispos
         var previousTrackId = playback.ActiveTrackId;
         playback = snapshot;
         if (snapshot.ActiveTrackId != previousTrackId)
+        {
             RaisePropertyChanged(nameof(CanEditLocalQueue));
+            RaisePropertyChanged(nameof(CurrentTrackDetail));
+            RaisePropertyChanged(nameof(PlaybackTitle));
+            RaisePropertyChanged(nameof(PlaybackArtist));
+            RaisePropertyChanged(nameof(PlaybackArtwork));
+        }
         if (IsPlaying)
             activity?.Record();
         RaisePropertyChanged(nameof(Playback));

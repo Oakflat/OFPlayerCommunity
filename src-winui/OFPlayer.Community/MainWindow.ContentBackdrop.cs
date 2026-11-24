@@ -30,13 +30,13 @@ public sealed partial class MainWindow
     {
         if (model is null || closing || inTray)
             return;
-        // Pro bought from the preview bar keeps the look that was being previewed.
         var backdrop = model.ShownContentBackdrop;
         SetPlaybackBarFrost(backdrop.BarFrost);
         // High contrast keeps the system's solid colours.
         var source = backdropAccessibility.HighContrast ? null : backdrop.Kind switch
         {
             ContentBackdrop.Cover => model.PlaybackArtwork,
+            ContentBackdrop.Image => model.ContentBackdropImagePath(backdrop),
             _ => null,
         };
         if (string.IsNullOrWhiteSpace(source))
@@ -45,7 +45,7 @@ public sealed partial class MainWindow
             return;
         }
 
-        var(width, radius) = backdrop.Kind == ContentBackdrop.Image ? BackdropPixels.ForImage(backdrop.Blur) : (BackdropPixels.CoverWidth, BackdropPixels.CoverRadius);
+        var (width, radius) = backdrop.Kind == ContentBackdrop.Image ? BackdropPixels.ForImage(backdrop.Blur) : (BackdropPixels.CoverWidth, BackdropPixels.CoverRadius);
         var picture = new BackdropPicture(source, width, radius);
         if (contentBackdropPicture == picture)
         {
@@ -86,7 +86,7 @@ public sealed partial class MainWindow
             else
                 ShowContentBackdrop(bitmap);
         }
-        catch (OperationCanceledException)when (load.IsCancellationRequested)
+        catch (OperationCanceledException) when (load.IsCancellationRequested)
         {
         }
         catch (Exception error)

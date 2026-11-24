@@ -4,10 +4,7 @@ using OFPlayer_WinUI.Services;
 
 namespace OFPlayer_WinUI.ViewModels;
 /// <summary>
-/// The content area's backdrop, edited in Settings › Appearance. An own picture is a Pro
-/// look: without Pro it is only previewed while Settings is open, and a saved one shows as
-/// the artwork wash until Pro is back. Plan state comes from the core's verified
-/// entitlements, never from the preference.
+/// The content area's backdrop, edited in Settings › Appearance.
 /// </summary>
 public sealed partial class MainViewModel
 {
@@ -17,17 +14,16 @@ public sealed partial class MainViewModel
     private CancellationTokenSource? contentBackdropSave;
     /// <summary>The saved choice.</summary>
     public ContentBackdrop ContentBackdrop { get; private set; } = ContentBackdrop.Default;
-    /// <summary>A Pro look tried without Pro; shown until Settings is left.</summary>
     public ContentBackdrop? ContentBackdropPreview { get; private set; }
     /// <summary>What the window shows now.</summary>
-    public ContentBackdrop ShownContentBackdrop => ContentBackdropPreview ?? ContentBackdrop.Effective(false);
-    public bool CanUseProLooks => false;
+    public ContentBackdrop ShownContentBackdrop => ContentBackdropPreview ?? ContentBackdrop.Effective(true);
+    public bool CanUseProLooks => true;
 
     /// <summary>Full path of a backdrop's picture, or null when it has none.</summary>
     public string? ContentBackdropImagePath(ContentBackdrop backdrop) => hostService is null || !ContentBackdrop.IsSafeFileName(backdrop.ImageFile) ? null : Path.Combine(hostService.DataRoot, AppearanceFolder, backdrop.ImageFile);
     public async Task ChooseContentBackdropAsync(ContentBackdrop requested)
     {
-        var(saved, preview) = ContentBackdrop.Choose(ContentBackdrop, requested, CanUseProLooks);
+        var (saved, preview) = ContentBackdrop.Choose(ContentBackdrop, requested, CanUseProLooks);
         var savedChanged = saved != ContentBackdrop;
         if (!savedChanged && preview == ContentBackdropPreview)
             return;
@@ -51,9 +47,7 @@ public sealed partial class MainViewModel
         }
     }
 
-    /// <summary>Pro arrived while its look was being previewed (bought from the preview bar): keep it.</summary>
     public Task AdoptContentBackdropPreviewAsync() => ContentBackdropPreview is { } preview && CanUseProLooks ? ChooseContentBackdropAsync(preview) : Task.CompletedTask;
-    /// <summary>Leaving Settings or "换回原来的": the saved look comes back.</summary>
     public void EndContentBackdropPreview()
     {
         if (ContentBackdropPreview is null)
@@ -86,7 +80,7 @@ public sealed partial class MainViewModel
             });
             return name;
         }
-        catch (Exception error)when (error is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
             PreviewLog.Write($"backdrop image import failed: {error.GetType().Name}: {error.Message}");
             return null;
@@ -128,7 +122,7 @@ public sealed partial class MainViewModel
                     if (!keep.Contains(Path.GetFileName(file)))
                         File.Delete(file);
             }
-            catch (Exception error)when (error is IOException or UnauthorizedAccessException)
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
             {
                 PreviewLog.Write($"backdrop cleanup skipped: {error.GetType().Name}: {error.Message}");
             }

@@ -109,7 +109,7 @@ public sealed partial class TrackInspectorView : UserControl
         var selectedMode = selected is not null;
         FavoriteButton.IsEnabled = selectedMode;
         FavoriteButton.Opacity = selectedMode ? 1.0 : 0.5;
-        FavoriteIcon.Glyph = viewModel.SelectedTrackIsFavorite ? "\uE735" : "\uE734";
+        FavoriteIcon.Glyph = viewModel.SelectedTrackIsFavorite ? "\uEB52" : "\uEB51";
         FavoriteText.Text = text(viewModel.SelectedTrackIsFavorite ? "track.favorited" : "track.favorite");
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(FavoriteButton, text(viewModel.SelectedTrackIsFavorite ? "track.unfavorite" : "track.favorite"));
         LyricsButton.IsEnabled = viewModel.IsConnected;

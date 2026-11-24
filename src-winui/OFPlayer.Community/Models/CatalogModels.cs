@@ -139,7 +139,7 @@ public sealed record TrackQueryRow(string Id, string LibraryId, string Title, st
         }
     }
 
-    public string FavoriteGlyph => Favorite ? "\uE735" : "\uE734";
+    public string FavoriteGlyph => Favorite ? "\uEB52" : "\uEB51";
     public Microsoft.UI.Xaml.Visibility FavoriteVisibility => Favorite ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
     /// <summary>D2: raw artwork reference from the row payload (file path or data URI).</summary>
     public string? ArtworkPath { get; init; }
