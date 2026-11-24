@@ -239,8 +239,28 @@ impl Session {
                 IMPORT_CANCELLED.store(true, Ordering::Relaxed);
                 Ok(json!({"cancelRequested":true}))
             }
-            "diagnostics_log_status" => Ok(json!({"enabled":false,"queued":0})),
-            "diagnostics_log_event" => Ok(json!({"recorded":false})),
+            "diagnostics_log_status" => match self.diagnostics.log_status() {
+                Ok(status) => {
+                    let mut value = encode(status)?;
+                    value["enabled"] = json!(true);
+                    value["queued"] = json!(0);
+                    Ok(value)
+                }
+                Err(_) => Ok(json!({"enabled":false,"queued":0,"path":"","directory":"","directoryKind":"unavailable"})),
+            },
+            "diagnostics_log_event" => {
+                let payload = args.get("request").cloned().unwrap_or(args);
+                let mut req: ofplayer_community_core::diagnostics::DiagnosticsLogEventRequest =
+                    decode(payload)?;
+                if req.category.trim().is_empty() {
+                    req.category = String::from("frontend");
+                }
+                if req.event.trim().is_empty() {
+                    req.event = String::from("event");
+                }
+                let recorded = self.diagnostics.append_event(&req).is_ok();
+                Ok(json!({"recorded":recorded}))
+            }
             _ => Err("unknown-command".into()),
         }
     }

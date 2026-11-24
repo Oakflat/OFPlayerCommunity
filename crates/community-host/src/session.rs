@@ -42,6 +42,7 @@ fn local_file(path: &str) -> Result<PathBuf, String> {
 pub struct Session {
     state: DesktopStateStore,
     player: PlaybackManager,
+    diagnostics: ofplayer_community_core::diagnostics::DiagnosticsLogStore,
     ended: u64,
     music_suspended: bool,
     external_track: Option<Value>,
@@ -102,10 +103,15 @@ impl Session {
                 eprintln!("[community-host] preferred audio output unavailable: {error}");
             }
         }
+        let mut diagnostics = ofplayer_community_core::diagnostics::DiagnosticsLogStore::default();
+        if let Err(error) = diagnostics.initialize() {
+            eprintln!("[community-host] diagnostics log unavailable: {error}");
+        }
         let (watch_sender, watch_events) = std::sync::mpsc::channel();
         Ok(Self {
             state,
             player,
+            diagnostics,
             ended: 0,
             music_suspended: false,
             external_track: None,
@@ -260,6 +266,8 @@ impl Session {
                         if let Err(error) = self.select(&next, None, true, 0.0) {
                             eprintln!("[community-host] next track unavailable: {error}");
                         }
+                    } else {
+                        self.persist()?;
                     }
                 }
             }

@@ -87,7 +87,9 @@ pub struct DiagnosticStepProfile {
 #[serde(rename_all = "camelCase")]
 pub struct DiagnosticsLogEventRequest {
     pub level: Option<String>,
+    #[serde(default)]
     pub category: String,
+    #[serde(default)]
     pub event: String,
     pub label: Option<String>,
     pub payload: Option<Value>,
